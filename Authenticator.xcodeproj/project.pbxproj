@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		450922DA2EEA843400FF7482 /* SearchAccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 450922D92EEA843400FF7482 /* SearchAccountsView.swift */; };
 		51002C2E267C95D9005D5A7C /* YubiKeyInformationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51002C2D267C95D9005D5A7C /* YubiKeyInformationViewModel.swift */; };
 		51394C5826CFE15F009F366D /* YubiMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51394C5726CFE15F009F366D /* YubiMenu.swift */; };
 		51394C5A26D40E64009F366D /* UIGestureRecognizer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51394C5926D40E64009F366D /* UIGestureRecognizer+Extensions.swift */; };
@@ -155,8 +154,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		450922D82EEA80DD00FF7482 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
-		450922D92EEA843400FF7482 /* SearchAccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchAccountsView.swift; sourceTree = "<group>"; };
 		51002C2D267C95D9005D5A7C /* YubiKeyInformationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YubiKeyInformationViewModel.swift; sourceTree = "<group>"; };
 		51394C5726CFE15F009F366D /* YubiMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YubiMenu.swift; sourceTree = "<group>"; };
 		51394C5926D40E64009F366D /* UIGestureRecognizer+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIGestureRecognizer+Extensions.swift"; sourceTree = "<group>"; };
@@ -363,7 +360,6 @@
 		515542702656706F00B19C59 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				450922D82EEA80DD00FF7482 /* RootTabView.swift */,
 				51AFD4D9271D4277008F2630 /* QuartzCore.framework */,
 				515542712656706F00B19C59 /* CryptoTokenKit.framework */,
 				51554293265BB65100B19C59 /* UserNotifications.framework */,
@@ -513,7 +509,6 @@
 				B452EC1E2A1E4F460045E5D9 /* YubiOtpRowView.swift */,
 				B4719B312993EFEE006CDAEA /* AccountDetailsView.swift */,
 				B4C93E5F299D156C00C2A8B8 /* ErrorAlertView.swift */,
-				450922D92EEA843400FF7482 /* SearchAccountsView.swift */,
 				B40D619F2AE7F37900467AE9 /* DisableOTPView.swift */,
 			);
 			path = UI;
@@ -763,7 +758,6 @@
 				B44E5E812C74BE67007ABB79 /* OATHResetView.swift in Sources */,
 				B411242F29D423A300D58001 /* ListStatusView.swift in Sources */,
 				816C684823430F8E00209342 /* SecureStoreQueryable.swift in Sources */,
-				450922DA2EEA843400FF7482 /* SearchAccountsView.swift in Sources */,
 				515542882656F64100B19C59 /* Data+Extensions.swift in Sources */,
 				51002C2E267C95D9005D5A7C /* YubiKeyInformationViewModel.swift in Sources */,
 				B40D61A02AE7F37900467AE9 /* DisableOTPView.swift in Sources */,
