@@ -18,7 +18,6 @@ import SwiftUI
 
 struct ConfigurationView: View {
     @StateObject var model = ConfigurationViewModel()
-    @Binding var showConfiguration: Bool
     @State var showInsertYubiKey: Bool = false
     
     var insertYubiKeyMessage = {
@@ -178,11 +177,6 @@ struct ConfigurationView: View {
                         Button("Scan NFC YubiKey") {
                             model.scanNFC()
                         }
-                    }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Close") {
-                        showConfiguration.toggle()
                     }
                 }
             }

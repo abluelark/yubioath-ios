@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,13 +23,11 @@ struct MainView: View {
     @EnvironmentObject var toastPresenter: ToastPresenter
     @EnvironmentObject var notificationsViewModel: NotificationsViewModel
     
-    @StateObject var model = MainViewModel()
+    @EnvironmentObject var model: MainViewModel
     @State var showAccountDetails: AccountDetailsData? = nil
     @State var showAddAccount: Bool = false
     @State var addAccountCancellable: AnyCancellable?
     @State var addAccountSubject = PassthroughSubject<(YKFOATHCredentialTemplate?, Bool), Never>()
-    @State var showConfiguration: Bool = false
-    @State var showAbout: Bool = false
     @State var password: String = ""
     @State var searchText: String = ""
     @State var didEnterBackground = true
@@ -56,12 +54,12 @@ struct MainView: View {
                     if !model.accountsLoaded {
                         ListStatusView(image: Image("yubikey"), message: insertYubiKeyMessage, height: reader.size.height)
                     } else if !searchText.isEmpty {
-                        if searchResults.count > 0 {
+                        if searchResults.isEmpty {
+                            ListStatusView(image: Image(systemName: "magnifyingglass"), message: "No results for \"\(searchText)\"", height: reader.size.height)
+                        } else {
                             ForEach(searchResults, id: \.id) { account in
                                 AccountRowView(account: account, showAccountDetails: $showAccountDetails)
                             }
-                        } else {
-                            ListStatusView(image: Image(systemName: "person.crop.circle.badge.questionmark"), message: String(localized: "No matching accounts on YubiKey"), height: reader.size.height)
                         }
                     } else if model.pinnedAccounts.count > 0 {
                         Section(header: Text("Pinned").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
@@ -92,7 +90,7 @@ struct MainView: View {
                 }
             }
             .accessibilityHidden(showAccountDetails != nil)
-            .searchable(text: $searchText, prompt: String(localized: "Search"))
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search accounts")
             .autocorrectionDisabled(true)
             .keyboardType(.asciiCapable)
             .listStyle(.inset)
@@ -121,21 +119,12 @@ struct MainView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button(action: { showAddAccount.toggle() }) {
-                            Label("Add account", systemImage: "qrcode")
-                        }
-                        .disabled(!YubiKitDeviceCapabilities.supportsISO7816NFCTags && !model.isKeyPluggedIn)
-                        Button(action: { showConfiguration.toggle() }) {
-                            Label("Configuration", systemImage: "switch.2")
-                        }
-                        .disabled(!YubiKitDeviceCapabilities.supportsISO7816NFCTags && !model.isKeyPluggedIn)
-                        Button(action: { showAbout.toggle() }) {
-                            Label("About", systemImage: "questionmark.circle")
-                        }
+                    Button {
+                        showAddAccount.toggle()
                     } label: {
-                        Label("Menu", systemImage: "ellipsis.circle")
+                        Label("Add account", systemImage: "plus")
                     }
+                    .disabled(!YubiKitDeviceCapabilities.supportsISO7816NFCTags && !model.isKeyPluggedIn)
                 }
             }
             .navigationTitle(model.accountsLoaded ? String(localized: "Accounts", comment: "Navigation title in main view.") : "")
@@ -148,22 +137,6 @@ struct MainView: View {
         }
         .sheet(isPresented: $showAddAccount) {
             AddAccountView(showAddCredential: $showAddAccount, accountSubject: addAccountSubject, oathURL: oathURL)
-        }
-        .fullScreenCover(isPresented: $showConfiguration) {
-            ConfigurationView(showConfiguration: $showConfiguration)
-                .onAppear {
-                    model.stop()
-                }.onDisappear {
-                    model.start()
-                }
-        }
-        .fullScreenCover(isPresented: $showAbout) {
-            AboutView()
-                .onAppear {
-                    model.stop()
-                }.onDisappear {
-                    model.start()
-                }
         }
         .fullScreenCover(isPresented: $model.presentDisableOTP) {
             DisableOTPView()
@@ -207,15 +180,11 @@ struct MainView: View {
         }
         .onOpenURL(perform: { url in
             guard url.scheme == "otpauth" else { return }
-            if showConfiguration { showConfiguration.toggle() }
-            if showAbout { showAbout.toggle() }
             oathURL = url
             showAddAccount.toggle()
         })
         .onContinueUserActivity(NSUserActivityTypeBrowsingWeb, perform: { userActivity in
             guard let otp = userActivity.webpageURL?.yubiOTP else { return }
-            if showConfiguration { showConfiguration.toggle() }
-            if showAbout { showAbout.toggle() }
             self.otp = otp
             if ApplicationSettingsViewModel().isNFCOnOTPLaunchEnabled {
                 model.updateAccountsOverNFC()
@@ -249,8 +218,6 @@ struct MainView: View {
         .onChange(of: notificationsViewModel.showPIVTokenView) { showPIVTokenview in
             if showPIVTokenview {
                 showAddAccount = false
-                showConfiguration = false
-                showAbout = false
                 showAccountDetails = nil
             }
         }
@@ -265,10 +232,12 @@ struct MainView: View {
     
     var searchResults: [Account] {
         if searchText.isEmpty {
-            return [Account]()
+            return []
         } else {
-            return model.accounts.filter { $0.title.lowercased().contains(searchText.lowercased()) ||
-                $0.subTitle?.lowercased().contains(searchText.lowercased()) == true }
+            return model.accounts.filter {
+                $0.title.lowercased().contains(searchText.lowercased()) ||
+                $0.subTitle?.lowercased().contains(searchText.lowercased()) == true
+            }
         }
     }
 }

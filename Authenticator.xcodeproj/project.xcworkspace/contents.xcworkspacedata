@@ -4,4 +4,13 @@
    <FileRef
       location = "self:">
    </FileRef>
+   <FileRef
+      location = "group:RootTabView.swift">
+   </FileRef>
+   <FileRef
+      location = "group:TABBAR_IMPLEMENTATION_SUMMARY.md">
+   </FileRef>
+   <FileRef
+      location = "group:SearchAccountsView.swift">
+   </FileRef>
 </Workspace>

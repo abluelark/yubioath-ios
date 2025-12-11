@@ -23,13 +23,27 @@ struct AuthenticatorApp: App {
     @Environment(\.scenePhase) var scenePhase
     @StateObject var toastPresenter = ToastPresenter()
     @StateObject var notificationsViewModel = NotificationsViewModel()
+    @StateObject var mainViewModel = MainViewModel()
     
     var body: some Scene {
         WindowGroup {
-            ZStack {
+            TabView {
                 MainView()
-                    .toast(isPresenting: $toastPresenter.isPresenting, message: toastPresenter.message)
+                    .tabItem {
+                        Label("Accounts", systemImage: "person.crop.circle")
+                    }
+                
+                ConfigurationView()
+                    .tabItem {
+                        Label("Configuration", systemImage: "gearshape.2")
+                    }
+                
+                AboutView()
+                    .tabItem {
+                        Label("About", systemImage: "info.circle")
+                    }
             }
+            .toast(isPresenting: $toastPresenter.isPresenting, message: toastPresenter.message)
             .fullScreenCover(isPresented: $notificationsViewModel.showPIVTokenView) {
                 TokenRequestView(userInfo: notificationsViewModel.userInfo)
             }
@@ -39,6 +53,7 @@ struct AuthenticatorApp: App {
             .navigationViewStyle(.stack)
             .environmentObject(toastPresenter)
             .environmentObject(notificationsViewModel)
+            .environmentObject(mainViewModel)
             .onAppear {
                 YubiKitExternalLocalization.nfcScanAlertMessage = String(localized: "Scan your YubiKey", comment: "iOS NFC alert scan")
                 YubiKitExternalLocalization.nfcScanSuccessAlertMessage = String(localized: "Success", comment: "iOS NFC alert default success message")
@@ -46,3 +61,4 @@ struct AuthenticatorApp: App {
         }
     }
 }
+
