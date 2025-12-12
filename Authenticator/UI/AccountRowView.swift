@@ -48,95 +48,97 @@ struct AccountRowView: View {
     }
 
     var body: some View {
-            HStack {
+            HStack(spacing: 12) {
+                // Icon
                 Text(String(account.title.first ?? "?"))
-                    .frame(width:40, height: 40)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 50, height: 50)
                     .background(account.iconColor)
-                    .cornerRadius(20)
-                    .padding(.trailing, 5)
+                    .clipShape(Circle())
                     .accessibilityHidden(true)
-                VStack(alignment: .leading) {
+                
+                // Account info
+                VStack(alignment: .leading, spacing: 2) {
                     Text(account.title)
-                        .font(.subheadline.weight(.medium))
+                        .font(.body.weight(.semibold))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.9)
-                        .truncationMode(.tail)
+                        .foregroundStyle(.primary)
                         .readFrame($titleFrame)
+                    
                     account.subTitle.map {
                         Text($0)
-                            .font(.footnote)
+                            .font(.subheadline)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.9)
-                            .truncationMode(.tail)
-                            .foregroundColor(Color(.secondaryLabel))
+                            .foregroundStyle(.secondary)
                             .readFrame($subTitleFrame)
                     }
                 }
-                Spacer()
-                HStack {
+                
+                Spacer(minLength: 8)
+                
+                // Code pill bubble
+                HStack(spacing: 8) {
+                    // Status icon
                     switch(account.state) {
                     case .requiresCalculation, .expired:
                         if !account.requiresTouch {
                             Image(systemName: "arrow.clockwise.circle.fill")
-                                .font(.system(size: 22))
-                                .frame(width: 22.0, height: 22.0)
-                                .padding(1)
+                                .font(.system(size: 20))
+                                .frame(width: 20, height: 20)
+                                .foregroundStyle(.secondary)
                                 .readFrame($statusIconFrame)
                                 .accessibilityHidden(true)
                         } else {
                             Image(systemName: "hand.tap.fill")
                                 .font(.system(size: 18))
-                                .frame(width: 22.0, height: 22.0)
-                                .padding(1)
+                                .frame(width: 20, height: 20)
+                                .foregroundStyle(.secondary)
                                 .readFrame($statusIconFrame)
                                 .accessibilityHidden(true)
                         }
                     case .countingdown(let remaining):
                         PieProgressView(progress: remaining,
-                                        color: pillColor,
+                                        color: .secondary,
                                         animate: animate)
-                            .frame(width: 22, height: 22)
-                            .padding(1)
+                            .frame(width: 20, height: 20)
                             .readFrame($statusIconFrame)
                             .accessibilityHidden(true)
                     }
+                    
+                    // Code text
                     ZStack {
                         if let otp = account.formattedCode {
                             Text(otp)
-                                .font(.system(size: 17))
-                                .bold()
-                                .padding(.trailing, 4)
+                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.primary)
                                 .readFrame($codeFrame)
                         } else {
-                            Text("*** *** ")
-                                .font(.system(size: 17))
-                                .bold()
-                                .padding(.trailing, 4)
-                                .padding(.top, 3.5)
-                                .padding(.bottom, -3.5)
+                            Text("*** ***")
+                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.secondary)
                         }
                         Text("888 888")
-                            .font(.system(size: 17))
-                            .bold()
+                            .font(.system(size: 16, weight: .semibold, design: .monospaced))
                             .foregroundColor(.clear)
-                            .padding(.trailing, 4)
                             .readFrame($estimatedCodeFrame)
                     }
                 }
-                .padding(.all, 4)
-                .foregroundColor(pillColor)
-                .accessibilityAddTraits(.isButton)
-                .overlay {
-                    Capsule()
-                        .stroke(pillColor, lineWidth: 1)
-                }
-                .accessibilityElement()
-                .accessibilityLabel(account.state == .expired ? String(localized: "Code expired", comment: "Accessibility label") : account.formattedCode ?? String(localized: "Code not calculated", comment: "Accessibility label"))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .modifier(CodePillGlassModifier())
                 .opacity(pillOpacity)
                 .scaleEffect(pillScaling)
+                .accessibilityElement()
+                .accessibilityLabel(account.state == .expired ? String(localized: "Code expired", comment: "Accessibility label") : account.formattedCode ?? String(localized: "Code not calculated", comment: "Accessibility label"))
+                .accessibilityAddTraits(.isButton)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .modifier(RowGlassModifier())
+            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
             .listRowSeparator(.hidden)
-            .background(Color(.systemBackground)) // without the background set, taps outside the Texts will be ignored
+            .listRowBackground(Color.clear)
             .onTapGesture {
                 let data = AccountDetailsData(account: account,
                                               estimatedCodeFrame: estimatedCodeFrame,
@@ -233,5 +235,47 @@ private struct PieShape: Shape {
         path.addArc(center: center, radius: radius, startAngle: Angle(radians: start), endAngle: Angle(radians: end), clockwise: true)
         path.closeSubpath()
         return path
+    }
+}
+
+// MARK: - Glass Effect Modifiers with Fallback
+
+/// Applies Liquid Glass effect to row container with fallback for iOS < 26
+struct RowGlassModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(in: .rect(cornerRadius: 16))
+        } else {
+            content
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(.regularMaterial)
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(.separator.opacity(0.2), lineWidth: 0.5)
+                    }
+                )
+        }
+    }
+}
+
+/// Applies Liquid Glass effect to code pill with fallback for iOS < 26
+struct CodePillGlassModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(in: .capsule)
+        } else {
+            content
+                .background(
+                    ZStack {
+                        Capsule()
+                            .fill(.regularMaterial)
+                        Capsule()
+                            .strokeBorder(.separator.opacity(0.3), lineWidth: 0.5)
+                    }
+                )
+        }
     }
 }

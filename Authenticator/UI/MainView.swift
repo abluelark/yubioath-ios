@@ -33,6 +33,9 @@ struct MainView: View {
     @State var didEnterBackground = true
     @State var otp: String? = nil
     @State var oathURL: URL? = nil
+    @State var isSearching: Bool = false // Initial state is FALSE (hidden)
+    @State var shakeAddButton: Bool = false
+    @State var shakeSearchButton: Bool = false
     
     var insertYubiKeyMessage = {
         if YubiKitDeviceCapabilities.supportsISO7816NFCTags {
@@ -43,57 +46,31 @@ struct MainView: View {
     }()
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             GeometryReader { reader in
                 List {
-                    if let otp {
-                        Section(header: Text("Yubico OTP").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
-                            YubiOtpRowView(otp: otp)
-                        }
-                    }
-                    if !model.accountsLoaded {
-                        ListStatusView(image: Image("yubikey"), message: insertYubiKeyMessage, height: reader.size.height)
-                    } else if !searchText.isEmpty {
-                        if searchResults.isEmpty {
-                            ListStatusView(image: Image(systemName: "magnifyingglass"), message: "No results for \"\(searchText)\"", height: reader.size.height)
-                        } else {
-                            ForEach(searchResults, id: \.id) { account in
-                                AccountRowView(account: account, showAccountDetails: $showAccountDetails)
-                            }
-                        }
-                    } else if model.pinnedAccounts.count > 0 {
-                        Section(header: Text("Pinned").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
-                            ForEach(model.pinnedAccounts, id: \.id) { account in
-                                AccountRowView(account: account, showAccountDetails: $showAccountDetails)
-                            }
-                        }
-                        if model.otherAccounts.count > 0 {
-                            Section(header: Text("Other").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
-                                ForEach(model.otherAccounts, id: \.id) { account in
-                                    AccountRowView(account: account, showAccountDetails: $showAccountDetails)
-                                }
-                            }
-                        }
-                    } else if model.accounts.count > 0 && otp != nil {
-                        Section(header: Text("Accounts").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
-                            ForEach(model.otherAccounts, id: \.id) { account in
-                                AccountRowView(account: account, showAccountDetails: $showAccountDetails)
-                            }
-                        }
-                    } else if model.accounts.count > 0 {
-                        ForEach(model.accounts, id: \.id) { account in
-                            AccountRowView(account: account, showAccountDetails: $showAccountDetails)
-                        }
-                    } else {
-                        ListStatusView(image: Image(systemName: "person.crop.circle"), message: String(localized: "No accounts on YubiKey"), height: reader.size.height)
-                    }
+                    // --- REPLACED COMPLEX LOGIC WITH NEW HELPER VIEW ---
+                    AccountListView(
+                        searchText: $searchText,
+                        showAccountDetails: $showAccountDetails,
+                        otp: otp,
+                        insertYubiKeyMessage: insertYubiKeyMessage,
+                        listHeight: reader.size.height
+                    )
+                    .environmentObject(model)
+                    // --- END HELPER VIEW ---
                 }
             }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color(UIColor.background))
             .accessibilityHidden(showAccountDetails != nil)
-            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search accounts")
-            .autocorrectionDisabled(true)
-            .keyboardType(.asciiCapable)
-            .listStyle(.inset)
+            .if(isSearching) { view in
+                view
+                    .searchable(text: $searchText, isPresented: $isSearching, placement: .navigationBarDrawer, prompt: "Search accounts")
+                    .autocorrectionDisabled(true)
+                    .keyboardType(.asciiCapable)
+            }
             .refreshable(enabled: YubiKitDeviceCapabilities.supportsISO7816NFCTags) {
                 otp = nil
                 model.updateAccountsOverNFC()
@@ -101,33 +78,74 @@ struct MainView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if UIAccessibility.isVoiceOverRunning {
-                        Button("Scan NFC YubiKey") { otp = nil
-                            model.updateAccountsOverNFC() }
-                    }
-                }
-                
-                ToolbarItem(placement: .principal) {
-                    if !model.accountsLoaded && !UIAccessibility.isVoiceOverRunning {
+                        Button("Scan NFC YubiKey") {
+                            otp = nil
+                            model.updateAccountsOverNFC()
+                        }
+                    } else if !model.accountsLoaded {
                         Image("NavbarLogo")
                             .renderingMode(.template)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 200, height: 20)
+                            .frame(width: 140, height: 18)
                             .foregroundColor(Color("YubiGreen"))
+                            .allowsHitTesting(false)
                             .accessibilityHidden(true)
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                // --- CUSTOM TOP-RIGHT TOOLBAR ITEMS ---
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    // 1. Search Button (Toggles Search Bar Visibility)
                     Button {
-                        showAddAccount.toggle()
+                        if model.accountsLoaded {
+                            isSearching.toggle()
+                            if !isSearching {
+                                searchText = "" // Clear search when closing
+                            }
+                        } else {
+                            // No accounts loaded - show haptic feedback and shake
+                            let haptic = UIImpactFeedbackGenerator(style: .medium)
+                            haptic.impactOccurred()
+                            withAnimation(.default.repeatCount(3).speed(6)) {
+                                shakeSearchButton = true
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                shakeSearchButton = false
+                            }
+                        }
+                    } label: {
+                        Image(systemName: isSearching ? "xmark.circle.fill" : "magnifyingglass")
+                    }
+                    .offset(x: shakeSearchButton ? 5 : 0)
+                    
+                    // 2. Add Account (+) Button
+                    Button {
+                        if YubiKitDeviceCapabilities.supportsISO7816NFCTags || model.isKeyPluggedIn {
+                            showAddAccount.toggle()
+                        } else {
+                            // No YubiKey detected - show haptic feedback and shake
+                            let haptic = UINotificationFeedbackGenerator()
+                            haptic.notificationOccurred(.warning)
+                            withAnimation(.default.repeatCount(3).speed(6)) {
+                                shakeAddButton = true
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                shakeAddButton = false
+                            }
+                        }
                     } label: {
                         Label("Add account", systemImage: "plus")
                     }
-                    .disabled(!YubiKitDeviceCapabilities.supportsISO7816NFCTags && !model.isKeyPluggedIn)
+                    .offset(x: shakeAddButton ? 5 : 0)
                 }
             }
+            // --- END CUSTOM TOP-RIGHT TOOLBAR ITEMS ---
+            
             .navigationTitle(model.accountsLoaded ? String(localized: "Accounts", comment: "Navigation title in main view.") : "")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .background(Color(UIColor.background).ignoresSafeArea())
         }
         .accessibilityHidden(showAccountDetails != nil)
         .overlay {
@@ -222,14 +240,41 @@ struct MainView: View {
             }
         }
         .onChange(of: model.isKeyPluggedIn) { isKeyPluggedIn in
-            // If the user removes the YubiKey while adding a new account we dismiss the add account modal.
-            if showAddAccount && !isKeyPluggedIn {
-                showAddAccount = false
+            if !isKeyPluggedIn {
+                // If the user removes the YubiKey while adding a new account we dismiss the add account modal.
+                if showAddAccount {
+                    showAddAccount = false
+                }
+                // If the user removes the YubiKey while viewing account details, dismiss the detail view.
+                if showAccountDetails != nil {
+                    showAccountDetails = nil
+                }
+                // *** FIX for search bar persistence ***
+                if isSearching {
+                    isSearching = false
+                    searchText = ""
+                }
+                // *************************************
+                
+                // Restart the session monitoring to be ready for the next YubiKey insertion
+                model.start()
             }
         }
         .environmentObject(model)
     }
+}
+
+// MARK: - AccountListView (Helper Struct to reduce compile time complexity)
+
+private struct AccountListView: View {
+    @EnvironmentObject var model: MainViewModel
+    @Binding var searchText: String
+    @Binding var showAccountDetails: AccountDetailsData?
+    let otp: String?
+    let insertYubiKeyMessage: String
+    let listHeight: CGFloat
     
+    // Helper property for filtering accounts
     var searchResults: [Account] {
         if searchText.isEmpty {
             return []
@@ -240,14 +285,72 @@ struct MainView: View {
             }
         }
     }
+
+    var body: some View {
+        Group {
+            if let otp {
+                Section(header: Text("Yubico OTP").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
+                    YubiOtpRowView(otp: otp)
+                }
+            }
+            if !model.accountsLoaded {
+                ListStatusView(image: Image("yubikey"), message: insertYubiKeyMessage, height: listHeight)
+            } else if !searchText.isEmpty {
+                if searchResults.isEmpty {
+                    ListStatusView(image: Image(systemName: "magnifyingglass"), message: "No results for \"\(searchText)\"", height: listHeight)
+                } else {
+                    ForEach(searchResults, id: \.id) { account in
+                        AccountRowView(account: account, showAccountDetails: $showAccountDetails)
+                    }
+                }
+            } else if model.pinnedAccounts.count > 0 {
+                Section(header: Text("Pinned").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
+                    ForEach(model.pinnedAccounts, id: \.id) { account in
+                        AccountRowView(account: account, showAccountDetails: $showAccountDetails)
+                    }
+                }
+                if model.otherAccounts.count > 0 {
+                    Section(header: Text("Other").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
+                        ForEach(model.otherAccounts, id: \.id) { account in
+                            AccountRowView(account: account, showAccountDetails: $showAccountDetails)
+                        }
+                    }
+                }
+            } else if model.accounts.count > 0 && otp != nil {
+                Section(header: Text("Accounts").frame(maxWidth: .infinity, alignment: .leading).font(.title3.bold()).foregroundColor(Color("ListSectionHeaderColor"))) {
+                    ForEach(model.otherAccounts, id: \.id) { account in
+                        AccountRowView(account: account, showAccountDetails: $showAccountDetails)
+                    }
+                }
+            } else if model.accounts.count > 0 {
+                ForEach(model.accounts, id: \.id) { account in
+                    AccountRowView(account: account, showAccountDetails: $showAccountDetails)
+                }
+            } else {
+                ListStatusView(image: Image(systemName: "person.crop.circle"), message: String(localized: "No accounts on YubiKey"), height: listHeight)
+            }
+        }
+    }
 }
 
+// MARK: - View Extensions
+
 extension View {
+    /// Conditionally applies a modifier to a view
+    @ViewBuilder
+    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+    
     func alertOrConfirmationDialog<A>(_ title: String, isPresented: Binding<Bool>, @ViewBuilder actions: () -> A) -> some View where A : View {
         if UIDevice.current.userInterfaceIdiom == .pad {
-            return AnyView(erasing: self.alert<A>(title, isPresented: isPresented, actions: actions))
+            return AnyView(erasing: self.alert(title, isPresented: isPresented, actions: actions))
         } else {
-            return AnyView(erasing: self.confirmationDialog<A>(title, isPresented: isPresented, titleVisibility: .visible, actions: actions))
+            return AnyView(erasing: self.confirmationDialog(title, isPresented: isPresented, titleVisibility: .visible, actions: actions))
         }
     }
 }

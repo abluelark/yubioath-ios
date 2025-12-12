@@ -17,6 +17,24 @@
 import SwiftUI
 
 
+// MARK: - Liquid Glass Corner Radius
+extension View {
+    /// Applies Liquid Glass corner radius with continuous curve
+    /// - Parameter radius: The corner radius (default: 16 for Liquid Glass)
+    func liquidGlassCornerRadius(_ radius: CGFloat = 16) -> some View {
+        self.clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+    }
+}
+
+// MARK: - Shape Extensions for Liquid Glass
+extension RoundedRectangle {
+    /// Creates a RoundedRectangle with Liquid Glass corner radius
+    static func liquidGlass(radius: CGFloat = 16) -> RoundedRectangle {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+    }
+}
+
+
 extension View {
     func readFrame(_ frame: Binding<CGRect>) -> some View {
         self.modifier(FrameReaderModifier(frame: frame))

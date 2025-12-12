@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4581A5992EEB3DCB00C5A335 /* LiquidGlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4581A5982EEB3DCB00C5A335 /* LiquidGlassTabBar.swift */; };
+		4581A59D2EEB3DD300C5A335 /* LiquidGlassButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4581A59C2EEB3DD300C5A335 /* LiquidGlassButtonStyles.swift */; };
 		51002C2E267C95D9005D5A7C /* YubiKeyInformationViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51002C2D267C95D9005D5A7C /* YubiKeyInformationViewModel.swift */; };
 		51394C5826CFE15F009F366D /* YubiMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51394C5726CFE15F009F366D /* YubiMenu.swift */; };
 		51394C5A26D40E64009F366D /* UIGestureRecognizer+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51394C5926D40E64009F366D /* UIGestureRecognizer+Extensions.swift */; };
@@ -154,6 +156,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4581A5982EEB3DCB00C5A335 /* LiquidGlassTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassTabBar.swift; sourceTree = "<group>"; };
+		4581A59C2EEB3DD300C5A335 /* LiquidGlassButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassButtonStyles.swift; sourceTree = "<group>"; };
 		51002C2D267C95D9005D5A7C /* YubiKeyInformationViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YubiKeyInformationViewModel.swift; sourceTree = "<group>"; };
 		51394C5726CFE15F009F366D /* YubiMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YubiMenu.swift; sourceTree = "<group>"; };
 		51394C5926D40E64009F366D /* UIGestureRecognizer+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIGestureRecognizer+Extensions.swift"; sourceTree = "<group>"; };
@@ -210,7 +214,6 @@
 		818866C922DFD72C006BC0A8 /* AuthenticatorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AuthenticatorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		818866CD22DFD72C006BC0A8 /* AuthenticatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatorTests.swift; sourceTree = "<group>"; };
 		818866CF22DFD72C006BC0A8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		818866F122E18804006BC0A8 /* Authenticator-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Authenticator-Bridging-Header.h"; sourceTree = "<group>"; };
 		818866F622E7A877006BC0A8 /* Authenticator.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Authenticator.entitlements; sourceTree = "<group>"; };
 		81C4E43C22F94B7B003AFBB8 /* KeySessionError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeySessionError.swift; sourceTree = "<group>"; };
 		81DF8FD2237A090A00737268 /* ApplicationSessionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationSessionObserver.swift; sourceTree = "<group>"; };
@@ -470,7 +473,6 @@
 				818BE8DA22F3485600061026 /* UI */,
 				818866F622E7A877006BC0A8 /* Authenticator.entitlements */,
 				B4901AE32BD697620092E7A2 /* Localizable.xcstrings */,
-				818866F122E18804006BC0A8 /* Authenticator-Bridging-Header.h */,
 				B4719B18298AA757006CDAEA /* AuthenticatorApp.swift */,
 				818866BF22DFD72C006BC0A8 /* Assets.xcassets */,
 				818866C422DFD72C006BC0A8 /* Info.plist */,
@@ -510,6 +512,8 @@
 				B4719B312993EFEE006CDAEA /* AccountDetailsView.swift */,
 				B4C93E5F299D156C00C2A8B8 /* ErrorAlertView.swift */,
 				B40D619F2AE7F37900467AE9 /* DisableOTPView.swift */,
+				4581A5982EEB3DCB00C5A335 /* LiquidGlassTabBar.swift */,
+				4581A59C2EEB3DD300C5A335 /* LiquidGlassButtonStyles.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -770,7 +774,9 @@
 				B4C93E60299D156C00C2A8B8 /* ErrorAlertView.swift in Sources */,
 				A591411D23830EB800CCCF67 /* UIApplicationExtension.swift in Sources */,
 				81FA3C34231AF2D8009C22AB /* AdvancedSettingsViewController.swift in Sources */,
+				4581A5992EEB3DCB00C5A335 /* LiquidGlassTabBar.swift in Sources */,
 				B47486602CEC83F90031A504 /* VersionHistoryView.swift in Sources */,
+				4581A59D2EEB3DD300C5A335 /* LiquidGlassButtonStyles.swift in Sources */,
 				817DBA0D2368B7B7001FC18D /* UIColorAdditions.swift in Sources */,
 				513F34C82464658F00FCE030 /* SettingsRowView.swift in Sources */,
 				51F8E3BF263848E30010686B /* Connection.swift in Sources */,

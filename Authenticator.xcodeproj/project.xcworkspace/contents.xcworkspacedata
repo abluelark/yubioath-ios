@@ -5,12 +5,12 @@
       location = "self:">
    </FileRef>
    <FileRef
-      location = "group:RootTabView.swift">
+      location = "group:LiquidGlassTabBar.swift">
    </FileRef>
    <FileRef
-      location = "group:TABBAR_IMPLEMENTATION_SUMMARY.md">
+      location = "group:LiquidGlassTabBar 2.swift">
    </FileRef>
    <FileRef
-      location = "group:SearchAccountsView.swift">
+      location = "group:LiquidGlassButtonStyles.swift">
    </FileRef>
 </Workspace>

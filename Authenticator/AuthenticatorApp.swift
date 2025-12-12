@@ -25,6 +25,56 @@ struct AuthenticatorApp: App {
     @StateObject var notificationsViewModel = NotificationsViewModel()
     @StateObject var mainViewModel = MainViewModel()
     
+    init() {
+        // Configure Navigation Bar appearance BEFORE views are created
+        let navBarAppearance = UINavigationBarAppearance()
+        navBarAppearance.configureWithOpaqueBackground()
+        navBarAppearance.backgroundColor = UIColor(red: 0.094, green: 0.188, blue: 0.161, alpha: 1.0)
+        
+        // Set text colors to WHITE for visibility against forest green
+        navBarAppearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor.white
+        ]
+        navBarAppearance.titleTextAttributes = [
+            .foregroundColor: UIColor.white
+        ]
+        
+        // Also set button/icon tint to white
+        navBarAppearance.buttonAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.white]
+        
+        // Make buttons white too
+        UINavigationBar.appearance().tintColor = .white
+        UINavigationBar.appearance().standardAppearance = navBarAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navBarAppearance
+        UINavigationBar.appearance().compactAppearance = navBarAppearance
+        
+        // CRITICAL: Also set this to ensure the appearance is fully adopted
+        if #available(iOS 15.0, *) {
+            UINavigationBar.appearance().compactScrollEdgeAppearance = navBarAppearance
+        }
+        
+        // Configure Tab Bar appearance
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = UIColor(red: 0.094, green: 0.188, blue: 0.161, alpha: 1.0)
+        
+        let yubiGreen = UIColor(named: "YubiGreen") ?? UIColor.systemGreen
+        
+        let itemAppearance = UITabBarItemAppearance()
+        itemAppearance.normal.iconColor = .secondaryLabel
+        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.secondaryLabel]
+        itemAppearance.selected.iconColor = yubiGreen
+        itemAppearance.selected.titleTextAttributes = [.foregroundColor: yubiGreen]
+        
+        tabBarAppearance.stackedLayoutAppearance = itemAppearance
+        tabBarAppearance.inlineLayoutAppearance = itemAppearance
+        tabBarAppearance.compactInlineLayoutAppearance = itemAppearance
+        
+        UITabBar.appearance().standardAppearance = tabBarAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+        UITabBar.appearance().tintColor = yubiGreen
+    }
+    
     var body: some Scene {
         WindowGroup {
             TabView {
@@ -43,6 +93,7 @@ struct AuthenticatorApp: App {
                         Label("About", systemImage: "info.circle")
                     }
             }
+            .preferredColorScheme(.dark)
             .toast(isPresenting: $toastPresenter.isPresenting, message: toastPresenter.message)
             .fullScreenCover(isPresented: $notificationsViewModel.showPIVTokenView) {
                 TokenRequestView(userInfo: notificationsViewModel.userInfo)
@@ -50,7 +101,6 @@ struct AuthenticatorApp: App {
             .transaction { transaction in
                 transaction.disablesAnimations = notificationsViewModel.showPIVTokenView
             }
-            .navigationViewStyle(.stack)
             .environmentObject(toastPresenter)
             .environmentObject(notificationsViewModel)
             .environmentObject(mainViewModel)

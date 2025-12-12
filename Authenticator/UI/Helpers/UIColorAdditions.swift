@@ -26,7 +26,7 @@ extension UIColor {
             }
         }
     }
-
+    
     static var secondaryText: UIColor {
         get {
             if #available(iOS 13.0, *) {
@@ -40,7 +40,13 @@ extension UIColor {
     static var background: UIColor {
         get {
             if #available(iOS 13.0, *) {
-                return UIColor.systemBackground
+                return UIColor { (traitCollection: UITraitCollection) -> UIColor in
+                    if traitCollection.userInterfaceStyle == .dark {
+                        return UIColor(red:0.094,green:0.188,blue:0.161,alpha:1.0)
+                    } else {
+                        return UIColor.systemBackground
+                    }
+                }
             } else {
                 return UIColor.white
             }
@@ -64,6 +70,7 @@ extension UIColor {
             return color
         }
     }
+    
     
     static let colorSetForAccountIcons = [UIColor(named: "Color1"),
                                           UIColor(named: "Color2"),

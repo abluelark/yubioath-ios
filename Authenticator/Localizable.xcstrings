@@ -58,6 +58,9 @@
         }
       }
     },
+    "*** ***" : {
+
+    },
     "*** *** " : {
       "localizations" : {
         "de" : {
@@ -4524,6 +4527,9 @@
           }
         }
       }
+    },
+    "Pull down to scan with NFC" : {
+
     },
     "QR codes are available from the services you wish to secure.\n\nSimply scan the QR code when you add your YubiKey and generate your own security codes." : {
       "localizations" : {

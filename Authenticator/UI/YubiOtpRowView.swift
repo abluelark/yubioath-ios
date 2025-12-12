@@ -23,25 +23,68 @@ struct YubiOtpRowView: View {
     var otp: String
     
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
+            // YubiKey icon
             Image("yubikey")
-                .frame(width:40, height: 40)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 24, height: 24)
+                .frame(width: 50, height: 50)
                 .background(Color.accentColor)
-                .cornerRadius(20)
-                .padding(.trailing, 5)
-            VStack(alignment: .leading) {
+                .clipShape(Circle())
+            
+            // OTP value
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Yubico OTP")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
                 Text(otp)
-                    .font(.subheadline.weight(.medium))
+                    .font(.system(size: 13, design: .monospaced))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.1)
+                    .minimumScaleFactor(0.8)
+                    .foregroundStyle(.secondary)
             }
+            
+            Spacer()
+            
+            // Copy indicator
+            Image(systemName: "doc.on.doc")
+                .font(.body)
+                .foregroundStyle(.secondary)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .modifier(OTPRowGlassModifier())
+        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
         .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
         .onTapGesture {
             toastPresenter.copyToClipboard(otp)
         }
         .onLongPressGesture {
             toastPresenter.copyToClipboard(otp)
+        }
+    }
+}
+
+// MARK: - Glass Effect Modifier with Fallback
+
+/// Applies Liquid Glass effect to OTP row with fallback for iOS < 26
+struct OTPRowGlassModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(in: .rect(cornerRadius: 16))
+        } else {
+            content
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(.regularMaterial)
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(.separator.opacity(0.2), lineWidth: 0.5)
+                    }
+                )
         }
     }
 }
