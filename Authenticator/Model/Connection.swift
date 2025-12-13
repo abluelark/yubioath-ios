@@ -21,7 +21,9 @@ class Connection: NSObject {
     
     override init() {
         super.init()
-        YubiKitManager.shared.delegate = self
+        print("TEST: Connection init - NOT setting delegate (should use OATHSessionHandler)")
+        // DO NOT set delegate - let OATHSessionHandler remain as the root delegate
+        // YubiKitManager.shared.delegate = self
         Logger.allocation.debug("Connection: init")
     }
     
@@ -45,7 +47,8 @@ class Connection: NSObject {
     private var smartCardConnectionCallback: ((_ connection: YKFSmartCardConnection?) -> Void)?
 
     func startConnection(completion: @escaping (_ connection: YKFConnectionProtocol) -> Void) {
-        YubiKitManager.shared.delegate = self
+        // DO NOT set delegate - OATHSessionHandler should remain as the root delegate
+        // YubiKitManager.shared.delegate = self
 
         if let connection = accessoryConnection {
             completion(connection)
@@ -63,7 +66,8 @@ class Connection: NSObject {
     
     func startWiredConnection(completion: @escaping (_ connection: YKFConnectionProtocol) -> Void) {
         connectionCallback = completion
-        YubiKitManager.shared.delegate = self
+        // DO NOT set delegate here - OATHSessionHandler should remain as the root delegate
+        // YubiKitManager.shared.delegate = self
     }
     
     func accessoryConnection(handler: @escaping (_ connection: YKFAccessoryConnection?) -> Void) {

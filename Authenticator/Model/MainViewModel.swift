@@ -21,12 +21,12 @@ import Combine
 
 class MainViewModel: ObservableObject {
     
-    @Environment(\.scenePhase) var scenePhase
+    // MARK: - Published Properties
     
-    @Published var accounts: [Account] = []
-    @Published var pinnedAccounts: [Account] = []
-    @Published var otherAccounts: [Account] = []
-    @Published var accountsLoaded: Bool = false
+    @Published private var _accounts: [Account] = []
+    @Published private var _pinnedAccounts: [Account] = []
+    @Published private var _otherAccounts: [Account] = []
+    @Published private var _accountsLoaded: Bool = false
     @Published var presentPasswordEntry: Bool = false
     @Published var presentPasswordSaveType: Bool = false
     @Published var presentDisableOTP: Bool = false
@@ -35,11 +35,37 @@ class MainViewModel: ObservableObject {
     @Published var sessionError: Error?
     @Published var connectionError: Error?
     
+    // MARK: - Computed Properties
+    
+    /// Returns accounts only when YubiKey is connected for security
+    var accounts: [Account] {
+        isKeyPluggedIn ? _accounts : []
+    }
+    
+    /// Returns pinned accounts only when YubiKey is connected for security
+    var pinnedAccounts: [Account] {
+        isKeyPluggedIn ? _pinnedAccounts : []
+    }
+    
+    /// Returns other accounts only when YubiKey is connected for security
+    var otherAccounts: [Account] {
+        isKeyPluggedIn ? _otherAccounts : []
+    }
+    
+    /// Returns true only when YubiKey is connected and accounts are loaded
+    var accountsLoaded: Bool {
+        isKeyPluggedIn && _accountsLoaded
+    }
+    
+    // MARK: - UI State
+    
     @Published var showTouchToast: Bool = false
 
+    // MARK: - Private Properties
+    
     var timer: Timer?
-
     var accessKeyMemoryCache = AccessKeyCache()
+    
     let accessKeySecureStore = SecureStore(secureStoreQueryable: PasswordQueryable(service: "OATH"))
     let passwordPreferences = PasswordPreferences()
     
@@ -51,18 +77,19 @@ class MainViewModel: ObservableObject {
     
     private var requestRefresh = PassthroughSubject<Account, Never>()
     private var requestRefreshCancellable: AnyCancellable? = nil
+    private var refreshRequestCount = 0
 
     private var sessionTask: Task<(), Never>? = nil
     
     private var favoritesStorage = FavoritesStorage()
     private var favorites: Set<String> = []
     private var favoritesCancellables = [AnyCancellable]()
-
-    private var refreshRequestCount = 0
+    
+    private var wiredKeyDisconnectCancellable: AnyCancellable?
+    
+    // MARK: - Initialization
     
     init() {
-        // Make sure to instantiate the OATHSessionHandler first to get it to be the root delegate in
-        // the DelegateStack.
         _ = OATHSessionHandler.shared
 
         requestRefreshCancellable = requestRefresh
@@ -85,11 +112,21 @@ class MainViewModel: ObservableObject {
                 self?.refreshRequestCount = 0
             }
         self.favorites = favoritesStorage.readFavorites()
+        
+        wiredKeyDisconnectCancellable = OATHSessionHandler.shared.wiredKeyDisconnected.sink { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.isKeyPluggedIn = false
+            }
+        }
     }
+    
+    // MARK: - Lifecycle Management
     
     @MainActor func start() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            for account in self?.accounts ?? [] {
+            guard let self, self.isKeyPluggedIn else { return }
+            for account in self._accounts {
                 account.updateState()
             }
         }
@@ -101,13 +138,7 @@ class MainViewModel: ObservableObject {
                     await self?.updateAccounts(using: session)
                     let error = await session.sessionDidEnd()
                     await MainActor.run { [weak self] in
-                        self?.favoritesCancellables.forEach { $0.cancel() }
-                        self?.favoritesCancellables.removeAll()
-                        self?.accounts.removeAll()
-                        self?.pinnedAccounts.removeAll()
-                        self?.otherAccounts.removeAll()
-                        self?.accountsLoaded = false
-                        self?.isKeyPluggedIn = false
+                        self?.clearAccountsAndState()
                         self?.sessionError = error
                     }
                 }
@@ -138,21 +169,26 @@ class MainViewModel: ObservableObject {
         timer?.invalidate()
         timer = nil
 
-        accounts.removeAll()
-        pinnedAccounts.removeAll()
-        otherAccounts.removeAll()
-        accountsLoaded = false
+        clearAccountsAndState()
+    }
+    
+    @MainActor func clearAccountsAndState() {
         isKeyPluggedIn = false
+        favoritesCancellables.forEach { $0.cancel() }
+        favoritesCancellables.removeAll()
+        _accounts.removeAll()
+        _pinnedAccounts.removeAll()
+        _otherAccounts.removeAll()
+        _accountsLoaded = false
         sessionError = nil
         connectionError = nil
     }
     
+    // MARK: - Account Management
+    
     @MainActor private func updateAccount(_ account: Account) async {
         do {
             let session = try await OATHSessionHandler.shared.anySession()
-            
-            // We can't know if a HOTP requires touch. Instead we wait for 0.5 seconds for a response and if
-            // the key doesn't return we assume it requires touch.
             let showTouchAlert = DispatchWorkItem {
                 guard session.type == .wired else { return }
                 self.showTouchToast = true
@@ -199,31 +235,30 @@ class MainViewModel: ObservableObject {
                 }
             }
             
-            self.pinnedAccounts = updatedAccounts.filter { $0.isPinned }.sorted()
-            self.otherAccounts = updatedAccounts.filter { !$0.isPinned }.sorted()
-            self.accounts = updatedAccounts.sorted()
+            self._pinnedAccounts = updatedAccounts.filter { $0.isPinned }.sorted()
+            self._otherAccounts = updatedAccounts.filter { !$0.isPinned }.sorted()
+            self._accounts = updatedAccounts.sorted()
             
             updatedAccounts.forEach { account in
-                // We need to drop the first value since the Publisher sends the initial value when we start subscribing
                 let cancellable = account.$isPinned.dropFirst().sink { [weak self, weak account] isPinned in
                     guard let self, let account else { return }
                     if isPinned {
                         self.favorites.insert(account.accountId)
-                        self.pinnedAccounts.append(account)
-                        self.pinnedAccounts = self.pinnedAccounts.sorted()
-                        self.otherAccounts.removeAll { $0.accountId == account.accountId }
+                        self._pinnedAccounts.append(account)
+                        self._pinnedAccounts = self._pinnedAccounts.sorted()
+                        self._otherAccounts.removeAll { $0.accountId == account.accountId }
                     } else {
                         self.favorites.remove(account.accountId)
-                        self.pinnedAccounts.removeAll { $0.accountId == account.accountId }
-                        self.otherAccounts.append(account)
-                        self.otherAccounts = self.otherAccounts.sorted()
+                        self._pinnedAccounts.removeAll { $0.accountId == account.accountId }
+                        self._otherAccounts.append(account)
+                        self._otherAccounts = self._otherAccounts.sorted()
                     }
                     self.favoritesStorage.saveFavorites(self.favorites)
                 }
                 favoritesCancellables.append(cancellable)
             }
             
-            self.accountsLoaded = true
+            self._accountsLoaded = true
             let message = SettingsConfig.showNFCSwipeHint ? String(localized: "Success!\nHint: swipe down to dismiss", comment: "iOS NFC alert success with hint") : String(localized: "Successfully read", comment: "iOS NFC alert successfully read")
             useSession.endNFC(message: message)
         } catch {
@@ -232,7 +267,7 @@ class MainViewModel: ObservableObject {
     }
     
     private func account(credential: OATHSession.Credential, code: OATHSession.OTP?, keyVersion: YKFVersion, requestRefresh: PassthroughSubject<Account, Never>, connectionType: OATHSession.ConnectionType) -> Account {
-        if let account = (accounts.filter { $0.credential.id == credential.id }).first {
+        if let account = (_accounts.filter { $0.credential.id == credential.id }).first {
             account.update(otp: code)
             return account
         } else {
@@ -292,9 +327,9 @@ class MainViewModel: ObservableObject {
             do {
                 let session = try await OATHSessionHandler.shared.anySession()
                 try await session.deleteCredential(account.credential)
-                accounts.removeAll { $0.accountId == account.accountId }
-                pinnedAccounts.removeAll { $0.accountId == account.accountId }
-                otherAccounts.removeAll { $0.accountId == account.accountId }
+                _accounts.removeAll { $0.accountId == account.accountId }
+                _pinnedAccounts.removeAll { $0.accountId == account.accountId }
+                _otherAccounts.removeAll { $0.accountId == account.accountId }
                 session.endNFC(message: String(localized: "Account deleted", comment: "OATH NFC account deleted"))
                 completion()
             } catch {
@@ -302,6 +337,8 @@ class MainViewModel: ObservableObject {
             }
         }
     }
+    
+    // MARK: - Password & Authentication
     
     func collectPasswordAndUnlock(isRetry: Bool = false, completion: @escaping (Error?) -> Void) {
         DispatchQueue.main.async {
@@ -418,6 +455,8 @@ class MainViewModel: ObservableObject {
         }
     }
 }
+
+// MARK: - Extensions
 
 extension OATHSession.Credential {
     var id: String {

@@ -19,7 +19,6 @@ import Combine
 
 struct MainView: View {
     
-    @Environment(\.scenePhase) var scenePhase
     @EnvironmentObject var toastPresenter: ToastPresenter
     @EnvironmentObject var notificationsViewModel: NotificationsViewModel
     
@@ -30,10 +29,9 @@ struct MainView: View {
     @State var addAccountSubject = PassthroughSubject<(YKFOATHCredentialTemplate?, Bool), Never>()
     @State var password: String = ""
     @State var searchText: String = ""
-    @State var didEnterBackground = true
     @State var otp: String? = nil
     @State var oathURL: URL? = nil
-    @State var isSearching: Bool = false // Initial state is FALSE (hidden)
+    @State var isSearching: Bool = false
     @State var shakeAddButton: Bool = false
     @State var shakeSearchButton: Bool = false
     
@@ -213,21 +211,7 @@ struct MainView: View {
                 toastPresenter.copyToClipboard(otp)
             }
         }
-        .onChange(of: scenePhase) { phase in
-            // Both the NFC and the Face ID scanning alerts make the app enter the `.inactive` state
-            // and in that situation we don't want to call model.stop() nor model.closeConnections()
-            if phase == .active && didEnterBackground {
-                didEnterBackground = false
-
-                model.start() // This is called when app becomes active
-            } else if phase == .background {
-                didEnterBackground = true
-
-                let _ = UIApplication.shared.beginBackgroundTask { }
-                model.stop()
-                model.closeConnections()
-            }
-        }
+        // Scene phase is now handled at the app level in AuthenticatorApp.swift
         .onChange(of: model.showTouchToast) { showToast in
             if showToast {
                 toastPresenter.toast(message: "Touch your YubiKey")
@@ -241,6 +225,9 @@ struct MainView: View {
         }
         .onChange(of: model.isKeyPluggedIn) { isKeyPluggedIn in
             if !isKeyPluggedIn {
+                // UI cleanup when YubiKey is removed
+                // (The model data is already cleared via the wiredKeyDisconnected publisher)
+                
                 // If the user removes the YubiKey while adding a new account we dismiss the add account modal.
                 if showAddAccount {
                     showAddAccount = false
@@ -249,18 +236,13 @@ struct MainView: View {
                 if showAccountDetails != nil {
                     showAccountDetails = nil
                 }
-                // *** FIX for search bar persistence ***
+                // Close search when key is removed
                 if isSearching {
                     isSearching = false
                     searchText = ""
                 }
-                // *************************************
-                
-                // Restart the session monitoring to be ready for the next YubiKey insertion
-                model.start()
             }
         }
-        .environmentObject(model)
     }
 }
 

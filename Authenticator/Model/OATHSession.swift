@@ -15,6 +15,7 @@
  */
 
 import Foundation
+import Combine
 
 enum OATHSessionError: Error, LocalizedError, Equatable {
     
@@ -57,6 +58,14 @@ class OATHSessionHandler: NSObject, YKFManagerDelegate {
     private var nfcConnectionCallback: ((_ connection: YKFConnectionProtocol) -> Void)?
     private var wiredConnectionCallback: ((_ connection: YKFConnectionProtocol) -> Void)?
     fileprivate var closingCallback: ClosingCallback?
+    
+    // SECURITY: Publisher to immediately notify when a wired YubiKey is disconnected
+    let wiredKeyDisconnected = PassthroughSubject<Void, Never>()
+    
+    override init() {
+        super.init()
+        YubiKitManager.shared.delegate = self
+    }
 
     func didConnectNFC(_ connection: YKFNFCConnection) {
         nfcConnection = connection
@@ -78,23 +87,39 @@ class OATHSessionHandler: NSObject, YKFManagerDelegate {
     }
     
     func didDisconnectAccessory(_ connection: YKFAccessoryConnection, error: Error?) {
+        print("TEST: didDisconnectAccessory called")
+        print("TEST: Sending wiredKeyDisconnected event")
         accessoryConnection = nil
         closingCallback?(error)
         closingCallback = nil
         currentSession = nil
+        // SECURITY: Immediately notify that wired key was disconnected
+        wiredKeyDisconnected.send()
+        print("TEST: wiredKeyDisconnected.send() completed")
     }
     
     func didConnectSmartCard(_ connection: YKFSmartCardConnection) {
+        print("TEST: didConnectSmartCard called")
+        // Ensure we remain the delegate
+        if YubiKitManager.shared.delegate !== self {
+            print("TEST: WARNING - Delegate was changed! Resetting to OATHSessionHandler")
+            YubiKitManager.shared.delegate = self
+        }
         smartCardConnection = connection
         wiredConnectionCallback?(connection)
         wiredConnectionCallback = nil
     }
     
     func didDisconnectSmartCard(_ connection: YKFSmartCardConnection, error: Error?) {
+        print("TEST: didDisconnectSmartCard called")
+        print("TEST: Sending wiredKeyDisconnected event")
         smartCardConnection = nil
         closingCallback?(error)
         closingCallback = nil
         currentSession = nil
+        // SECURITY: Immediately notify that wired key was disconnected
+        wiredKeyDisconnected.send()
+        print("TEST: wiredKeyDisconnected.send() completed")
     }
     
     struct WiredOATHSessions: AsyncSequence {
